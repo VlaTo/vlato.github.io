@@ -5,7 +5,8 @@
 	//
 	// main game object
 	scope.Game = function(options) {
-		var ACTION_DISTANCE = 80.0;
+		var ACTION_DISTANCE = 70.0;
+		var DISTANCE_DELTA = 0.3;
 
 		var ColorType = {
 			Color1: 0,
@@ -214,13 +215,20 @@
 				return new Vector2(this.origin.x + this.halfWidth, vector.y).distance(vector);
 			};
 
-			this.update = function(actor) {
+			this.isRight = function(actor) {
+				var vector = actor.mass();
+				return (this.origin.x + this.halfWidth) < vector.x;
+			};
+
+			this.apply = function(actor, acceleration) {
 				var distance = this.distance(actor);
-				var force = new Vector2(- distance, 0.1).normalize();
 
-				force.y = 0.0;
+				if (distance > DISTANCE_DELTA) {
+					var force = new Vector2(this.isRight(actor) ? -distance : distance, 0.1).normalize();
+					return acceleration.add(new Vector2(force.x, 0.0));
+				}
 
-				//actor.acceleration = actor.acceleration.add(force);
+				return acceleration;
 			};
 		}
 
@@ -231,16 +239,20 @@
 
 			var radius = 20;
 
-			this.apply = function(actor, elapsed, acceleration, distance) {
+			this.apply = function(actor, acceleration, elapsed) {
 				var vector = actor.mass().sub(this.origin);
-				var factor = 1 - Math.min(1, vector.length() / distance);
+				var length = vector.length();
 
-				vector = vector.normalize();
-				vector.y = 0.0;
+				if (length > ACTION_DISTANCE) {
+					return acceleration;
+				}
 
-				return acceleration.add(vector.scalar(factor));
+				var factor = 1.0 - vector.length() / ACTION_DISTANCE;
 
-				// actor.velocity = actor.velocity.add(vector.scalar(factor));
+				// vector = vector.normalize();
+				// vector.y = 0.0;
+
+				return acceleration.add(new Vector2(vector./*normalize().*/x, 0.0).scalar(factor));
 			};
 
 			this.draw = function(context) {
@@ -270,9 +282,8 @@
 
 			this.type = type;
 			this.track = track;
-			this.origin = new Vector2(track.origin.x + (track.halfWidth - size / 2.0), track.origin.y);
+			this.origin = new Vector2(track.origin.x + (track.halfWidth - size / 2.0) + DISTANCE_DELTA + 0.1, track.origin.y);
 			this.velocity = velocity || new Vector2(0.0, 0.0);
-			// this.acceleration = acceleration || new Vector2(0.0, 0.1);
 			this.center = new Vector2(size / 2.0, size / 2.0);
 			this.ticks = null;
 
@@ -289,7 +300,6 @@
 
 				this.origin = this.origin.add(this.velocity);
 				this.velocity = this.velocity.scalar(0.5).add(acceleration);
-				// this.acceleration = this.acceleration.scalar(0.3);
 			};
 
 			this.draw = function(context) {
@@ -381,16 +391,13 @@
 
 			for(var index = 0; index < this.actors.length;) {
 				var actor = this.actors[index];
+				var track = actor.track;
 				var acceleration = this.gravity;
 
 				if (this.action != null) {
-					// this.action.apply(actor, ACTION_DISTANCE);
-					acceleration = this.action.apply(actor, elapsed, this.gravity, ACTION_DISTANCE);
+					acceleration = this.action.apply(actor, acceleration, elapsed);
 				}
 
-				actor.update(elapsed, acceleration);
-
-				var track = actor.track;
 				var distance = track.distance(actor);
 
 				if (distance > track.halfWidth) {
@@ -403,25 +410,22 @@
 					actor.track = track;
 				}
 
-				track.update(actor);
-
-				if (isNaN(actor.origin.x)) {
-					debugger;
+				if (this.action == null) {
+					acceleration = track.apply(actor, acceleration);
 				}
+
+				actor.update(elapsed, acceleration);
 
 				var flags = bounds.test(actor.getBounds());
 
 				if (flags[0]) {
 					actor.velocity = new Vector2(- actor.velocity.x, actor.velocity.y);
-					//actor.force = new Vector2(- actor.force.x, actor.force.y);
 				}
 				else if (flags[2]) {
 					actor.velocity = new Vector2(- actor.velocity.x, actor.velocity.y);
-					//actor.force = new Vector2(- actor.force.x, actor.force.y);
 				}
 
 				if (true == flags[6] && flags[6] == flags[7]) {
-					// console.log('[actor] velocity: ' + actor.velocity.y);
 					var track = actor.track;
 
 					track.drop(actor);
