@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <title>Fun Rally</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js" language="javascript"></script>
+    <script type="text/javascript" src="game.js" language="javascript" async="async"></script>
+    <script type="text/javascript" language="javascript">
+		$(document).ready(function() {
+	    	var game = new Game();
+	    	game.init($('#surface')[0]);
+	    	game.run();
+    	});
+    </script>
+</head>
+<body>
+    <canvas id="surface" style="border: solid 1px black;" width="640" height="480"></canvas>
+</body>
+</html>
