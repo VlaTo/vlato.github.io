@@ -28,6 +28,8 @@
 		this.action = null;
 		this.actors = [];
 		this.tracks = [];
+		this.overlays = [];
+		this.score = null;
 		this.lastActorTicks = null;
 
 		this.gravity = new Vector2(0.0, 0.3);
@@ -150,63 +152,30 @@
 
 		//
 		// Track object
-		function Track(type, middle, halfWidth, length) {
+		function Track(type, middle, halfWidth, length, score) {
 			this.type = type;
-			// this.color = color;
+			this.score = score;
 			this.origin = new Vector2(middle - halfWidth, -length / 2.0);
 			this.halfWidth = halfWidth;
 			this.length = length;
 
-			this.count = 0;
-
 			this.draw = function(context) {
-				context.save();
+				/*context.save();
 
 				context.translate(this.origin.x, this.origin.y);
-
-				/*context.beginPath();
-				context.rect(0.0, 0.0, this.halfWidth * 2.0, length);
-				context.closePath();
-
-				switch(this.type) {
-					case ColorType.Color1:
-						context.fillStyle = '#BFF2E6';
-					break;
-
-					case ColorType.Color2:
-						context.fillStyle = '#BFE0F2';
-					break;
-
-					case ColorType.Color3:
-						context.fillStyle = '#F0F2BF';
-					break;
-
-					case ColorType.Color4:
-						context.fillStyle = '#F2BFEE';
-					break;
-				}
-
-				context.fill();
-
-				context.beginPath();
-				context.moveTo(this.halfWidth * 2.0, 0.0);
-				context.lineTo(this.halfWidth * 2.0, length);
-				context.closePath();
-
-				context.lineWidth = 2;
-				context.strokeStyle = 'black';
-				context.stroke();*/
 
 				context.fillStyle = 'white';
 				context.font = 'bold 12pt Calibri';
 				context.fillText(this.count.toString(), 10.0, 15.0);
 
-				context.restore();
+				context.restore();*/
 			};
 
 			this.drop = function(actor) {
 				if (actor.type == this.type) {
-					this.count++;
+					this.score.increment();
+				} else {
+					this.score.decrement();
 				}
 			};
 
@@ -234,8 +203,9 @@
 
 		//
 		// ActionPoint object
-		function ActionPoint(x, y) {
+		function ActionPoint(x, y, touch) {
 			this.origin = new Vector2(x, y);
+			this.touch = touch;
 
 			var radius = 20;
 
@@ -249,10 +219,7 @@
 
 				var factor = 1.0 - vector.length() / ACTION_DISTANCE;
 
-				// vector = vector.normalize();
-				// vector.y = 0.0;
-
-				return acceleration.add(new Vector2(vector./*normalize().*/x, 0.0).scalar(factor));
+				return acceleration.add(new Vector2(vector.x, 0.0).scalar(factor));
 			};
 
 			this.draw = function(context) {
@@ -310,39 +277,6 @@
 
 				context.drawImage(this.image, 0.0, 0.0, size, size);
 
-				/*context.beginPath();
-				context.arc(size / 2.0, size / 2.0, size / 2.0, 0.0, Math.PI * 2);
-				context.closePath();
-
-				switch(this.type) {
-					case ColorType.Color1:
-						context.fillStyle = '#BFF2E6';
-					break;
-
-					case ColorType.Color2:
-						context.fillStyle = '#BFE0F2';
-					break;
-
-					case ColorType.Color3:
-						context.fillStyle = '#F0F2BF';
-					break;
-
-					case ColorType.Color4:
-						context.fillStyle = '#F2BFEE';
-					break;
-				}
-
-				// context.fillStyle = this.color;
-				context.fill();
-
-				context.lineWidth = 1.5;
-				context.strokeStyle = 'black';
-				context.stroke();*/
-
-				/*context.fillStyle = 'white';
-				context.font = 'normal 10pt Calibri';
-				context.fillText(this.track.num.toString(), 5.0, 5.0);*/
-
 				context.restore();
 			};
 
@@ -357,6 +291,74 @@
 			};
 		};
 
+		//
+		// Overlay object
+		function Overlay(x, y, image, fx) {
+			this.origin = new Vector2(x, y);
+			this.image = image;
+			this.fx = fx;
+
+			this.ticks = null;
+			this.x = 0.0;
+			this.y = 0.0;
+			this.direction = -0.1;
+
+			this.update = function(elapsed) {
+				if (this.ticks == null) {
+					this.ticks = elapsed;
+				}
+
+				var duration = elapsed - this.ticks;
+
+				this.fx(this, duration);
+			};
+
+			this.draw = function(context) {
+				context.save();
+
+				context.translate(this.origin.x, this.origin.y);
+				context.drawImage(this.image, this.x, this.y, this.image.width, this.image.height);
+
+				context.restore();
+			};
+		};
+
+		//
+		// Score object
+		function Score(x, y, width, height) {
+			var step = 100;
+
+			this.origin = new Vector2(x, y);
+			this.width = width;
+			this.height = height;
+			this.score = 0;
+			this.color = 'white';
+
+			this.increment = function() {
+				this.score += step;
+			};
+
+			this.decrement = function() {
+				this.score -= step;
+
+				if (this.score <= 0) {
+					this.score = 0;
+				}
+			};
+
+			this.draw = function(context) {
+				context.save();
+
+				context.translate(this.origin.x, this.origin.y);
+
+				context.font = 'bold 32pt Calibri';
+				context.fillStyle = this.color;
+				context.fillText('score: ' + this.score, 30.0, 35.0);
+
+				context.restore();
+			};
+		}
+
 		this.init = function(canvas) {
 			this.canvas = canvas;
 
@@ -369,14 +371,20 @@
 				this.attachCanvasEvent('mousemove', this.onMouseMove.bind(this));
 				this.attachCanvasEvent('mousedown', this.onMouseDown.bind(this));
 				this.attachCanvasEvent('mouseup', this.onMouseUp.bind(this));
+
+				this.attachCanvasEvent('touchstart', this.onTouchStart.bind(this));
+				this.attachCanvasEvent('touchmove', this.onTouchMove.bind(this));
+				this.attachCanvasEvent('touchend', this.onTouchEnd.bind(this));
 			}
 
 			this.timer = new Timer();
 
-			this.tracks.push(new Track(ColorType.Color1, -240.0, 80.0, this.height));
-			this.tracks.push(new Track(ColorType.Color2, -80.0, 80.0, this.height));
-			this.tracks.push(new Track(ColorType.Color3, 80.0, 80.0, this.height));
-			this.tracks.push(new Track(ColorType.Color4, 240.0, 80.0, this.height));
+			this.score = new Score(- this.origin.x, - this.origin.y, this.width, 50.0);
+
+			this.tracks.push(new Track(ColorType.Color1, -240.0, 80.0, this.height, this.score));
+			this.tracks.push(new Track(ColorType.Color2, -80.0, 80.0, this.height, this.score));
+			this.tracks.push(new Track(ColorType.Color3, 80.0, 80.0, this.height, this.score));
+			this.tracks.push(new Track(ColorType.Color4, 240.0, 80.0, this.height, this.score));
 
 			this.assets = {
 				images: []
@@ -393,6 +401,19 @@
 
 				}
 			}
+
+			var fx = function(overlay, duration) {
+				var x = overlay.origin.x + overlay.x + overlay.image.width;
+				var width = - this.origin.x + this.width;
+
+				if ((x < width) || (overlay.x > 0.0)) {
+					overlay.direction *= -1.0;
+				}
+
+				overlay.x += overlay.direction;
+			}.bind(this);
+
+			this.overlays.push(new Overlay(- this.origin.x, - this.origin.y, this.assets.images['dust1'], fx));
 		};
 
 		this.attachCanvasEvent = function(event, callback) {
@@ -469,6 +490,11 @@
 				this.lastActorTicks = elapsed;
 			}
 
+			for (var index = 0; index < this.overlays.length; index++) {
+				var overlay = this.overlays[index];
+				overlay.update(elapsed);
+			};
+
 			return true;
 		};
 
@@ -504,13 +530,6 @@
 
 			this.context.translate(this.origin.x, this.origin.y);
 
-			this.context.beginPath();
-			this.context.arc(0.0, 0.0, 2.0, 0.0, Math.PI * 2);
-			this.context.closePath();
-
-			this.context.strokeStyle = 'black';
-			this.context.stroke();
-
 			for(var index = 0; index < this.tracks.length; index++) {
 				var track = this.tracks[index];
 				track.draw(this.context);
@@ -521,9 +540,16 @@
 				actor.draw(this.context);
 			}
 
+			this.score.draw(this.context);
+
 			if (this.action != null) {
 				this.action.draw(this.context);
 			}
+
+			for(var index = 0; index < this.overlays.length; index++) {
+				var overlay = this.overlays[index];
+				overlay.draw(this.context);
+			};
 		};
 
 		this.getMousePosition = function(args) {
@@ -535,6 +561,8 @@
 		};
 
 		this.onMouseDown = function(args) {
+			args.preventDefault();
+
 			if (this.action != null) {
 				return;
 			}
@@ -545,6 +573,8 @@
 		};
 
 		this.onMouseMove = function(args) {
+			args.preventDefault();
+
 			if (this.action == null) {
 				return;
 			}
@@ -555,11 +585,63 @@
 		};
 
 		this.onMouseUp = function(args) {
+			args.preventDefault();
+
 			if (this.action == null) {
 				return;
 			}
 
 			this.action = null;
+		};
+
+		this.onTouchStart = function(args) {
+			args.preventDefault();
+
+			if (this.action != null && this.action.touch != null) {
+				return;
+			}
+
+			var touch = args.changedTouches[0];
+			var coords = this.getMousePosition(touch);
+
+			this.action = new ActionPoint(coords.x, coords.y, { id: touch.identifier });
+		};
+
+		this.onTouchMove = function(args) {
+			args.preventDefault();
+
+			if (this.action == null || this.action.touch == null) {
+				return;
+			}
+
+			for (var index = 0; index < args.changedTouches.length; index++) {
+				var touch = args.changedTouches[index];
+
+				if (this.action.touch.id == touch.identifier) {
+					var coords = this.getMousePosition(touch);
+					this.action.origin = coords;
+
+					break;
+				}
+			}
+		};
+
+		this.onTouchEnd = function(args) {
+			args.preventDefault();
+
+			if (this.action == null || this.action.touch == null) {
+				return;
+			}
+
+			for (var index = 0; index < args.changedTouches.length; index++) {
+				var touch = args.changedTouches[index];
+
+				if (this.action.touch.id == touch.identifier) {
+					this.action = null;
+
+					break;
+				}
+			}
 		};
 	};
 }(window, document));
