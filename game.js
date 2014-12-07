@@ -410,9 +410,9 @@
 					actor.track = track;
 				}
 
-				if (this.action == null) {
+				// if (this.action == null) {
 					acceleration = track.apply(actor, acceleration);
-				}
+				// }
 
 				actor.update(elapsed, acceleration);
 
