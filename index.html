@@ -3,17 +3,24 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
     <title>Fun Rally</title>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js" language="javascript"></script>
-    <script type="text/javascript" src="game.js" language="javascript" async="async"></script>
-    <script type="text/javascript" language="javascript">
-		$(document).ready(function() {
-	    	var game = new Game();
-	    	game.init($('#surface')[0]);
-	    	game.run();
-    	});
-    </script>
+    <!-- <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js" language="javascript"></script> -->
 </head>
 <body>
-    <canvas id="surface" style="border: solid 1px black;" width="400" height="600"></canvas>
+    <canvas id="surface" style="border: solid 1px black;" width="640" height="1136"></canvas>
+    <script type="text/javascript" src="game.js" language="javascript"></script>
+    <script type="text/javascript" language="javascript">
+        var game = new Game({
+            images: {
+                'background': '/assets/images/background.png',
+                'color1': 'assets/images/green-ball.png',
+                'color2': 'assets/images/pink-ball.png',
+                'color3': 'assets/images/blue-ball.png',
+                'color4': 'assets/images/yellow-ball.png'
+            }
+        });
+
+        game.init(document.querySelector('#surface'));
+        game.run();
+    </script>
 </body>
 </html>
