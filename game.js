@@ -483,10 +483,21 @@
 					 { type: ColorType.Color4, name: 'color4' }
 				];
 
-				var track = this.tracks[Math.round(Math.random() * 3)];
-				var acc = colors[Math.round(Math.random() * 3)];
+				var indices = [];
 
-				this.actors.push(new Actor(track, acc.type, null, this.assets.images[acc.name]));
+				indices.push(Math.round(Math.random() * 3));
+
+				if (elapsed > 20000) {
+					indices.push(3 - indices[0]);
+				}
+
+				for (var index = 0; index < indices.length; index++) {
+					var track = this.tracks[indices[index]];
+					var acc = colors[Math.round(Math.random() * 3)];
+
+					this.actors.push(new Actor(track, acc.type, null, this.assets.images[acc.name]));
+				}
+				
 				this.lastActorTicks = elapsed;
 			}
 
